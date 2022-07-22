@@ -3,12 +3,12 @@ package main
 import (
 	"math"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	"ntsc.ac.cn/st-pcie-sync/pkg/driver"
+	"ntsc.ac.cn/tas/tas-commons/pkg/rexec"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 		logrus.Debugf("offset: %s", offset)
 		offset_f64 := math.Abs(float64(offset))
 		conf_f64 := float64(time.Duration(
-			time.Microsecond * time.Duration(10)))
+			time.Millisecond * 100))
 		if offset_f64 < conf_f64 {
 			time.Sleep(time.Second * 10)
 			continue
@@ -46,12 +46,16 @@ func main() {
 		logrus.Debugf("read  card time: %s", cardTime.UTC().Format(time.RFC3339Nano))
 		cardTime = cardTime.Add(time.Millisecond * -2)
 		logrus.Debugf("fixed card time: %s", cardTime.UTC().Format(time.RFC3339Nano))
-		tstr := cardTime.Format(time.RFC3339Nano)
-		cmd := exec.Command("/usr/bin/date", "-s", tstr)
-		if err := cmd.Run(); err != nil {
+
+		// tstr := cardTime.Format(time.RFC3339Nano)
+		// cmd := exec.Command("/usr/bin/date", "-s", tstr)
+		if err := rexec.SetClock(cardTime); err != nil {
 			logrus.Errorf("failed to set system time: %v", err)
 		}
-		logrus.Debugf("success to set system time: %s", tstr)
+		// if err := rexec.UpdateTime(cardTime, offset); err != nil {
+		// 	logrus.Errorf("failed to set system time: %v", err)
+		// }
+		logrus.Debugf("success to set system time")
 		time.Sleep(time.Second * 10)
 	}
 }
